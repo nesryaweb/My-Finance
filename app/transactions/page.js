@@ -314,10 +314,10 @@ export default function TransactionsPage() {
       <section>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold">Recent expenses</h2>
+            <h2 className="text-xl font-semibold">Recent transactions</h2>
 
             <p className="text-sm text-muted-foreground">
-              {filteredTransactions.length} expense
+              {filteredTransactions.length} transaction
               {filteredTransactions.length !== 1 ? "s" : ""}
             </p>
           </div>
@@ -488,7 +488,9 @@ export default function TransactionsPage() {
 
                 <div className="min-w-0">
                   <p className="font-medium">
-                    {transaction.category?.name || "Expense"}
+                    {transaction.type === "DEBT_RECEIVED"
+                      ? "Debt received"
+                      : transaction.category?.name || "Expense"}
                   </p>
 
                   <p className="text-sm text-muted-foreground">
@@ -506,8 +508,19 @@ export default function TransactionsPage() {
 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="font-semibold text-destructive">
-                      -{Number(transaction.amount).toLocaleString()}{" "}
+                    <p
+                      className={`font-semibold ${
+                        transaction.type === "INCOME" ||
+                        transaction.type === "DEBT_RECEIVED"
+                          ? "text-green-600"
+                          : "text-destructive"
+                      }`}
+                    >
+                      {transaction.type === "INCOME" ||
+                      transaction.type === "DEBT_RECEIVED"
+                        ? "+"
+                        : "-"}
+                      {Number(transaction.amount).toLocaleString()}{" "}
                       <span className="text-xs text-gray-500">birr</span>
                     </p>
                   </div>

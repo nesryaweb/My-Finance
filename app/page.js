@@ -8,13 +8,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAllBudgetCategories, setShowAllBudgetCategories] = useState(false);
+
   async function loadDashboard() {
     try {
       setLoading(true);
       setError("");
 
       const response = await fetch("/api/dashboard");
-
       const result = await response.json();
 
       if (!response.ok) {
@@ -24,7 +24,6 @@ export default function DashboardPage() {
       setData(result);
     } catch (error) {
       console.error(error);
-
       setError(error.message || "Failed to load dashboard");
     } finally {
       setLoading(false);
@@ -66,13 +65,9 @@ export default function DashboardPage() {
   // ==================================================
 
   const totals = data?.totals || {};
-
   const budget = data?.budget;
-
   const accounts = data?.accounts || [];
-
   const categorySpending = data?.categorySpending || [];
-
   const recentTransactions = data?.recentTransactions || [];
 
   return (
@@ -90,7 +85,7 @@ export default function DashboardPage() {
       </header>
 
       {/* ==================================================
-            MAIN TOTALS
+            TOTAL MONEY SUMMARY
         ================================================== */}
 
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -132,11 +127,11 @@ export default function DashboardPage() {
           <div className="rounded-xl border bg-card p-6">
             {/* Budget totals */}
 
-            <div className="grid grid-cols-3 gap-5 md:grid-cols-3">
+            <div className="grid grid-cols-3 gap-5">
               <div>
                 <p className="text-sm text-muted-foreground">Budgeted</p>
 
-                <p className="mt-1 text-xl sm:text-2xl  font-bold">
+                <p className="mt-1 text-xl font-bold sm:text-2xl">
                   {formatMoney(budget.totalBudgeted)}{" "}
                   <span className="text-xs text-gray-500">birr</span>
                 </p>
@@ -145,7 +140,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Spent</p>
 
-                <p className="mt-1 text-xl sm:text-2xl font-bold">
+                <p className="mt-1 text-xl font-bold sm:text-2xl">
                   {formatMoney(budget.totalSpent)}{" "}
                   <span className="text-xs text-gray-500">birr</span>
                 </p>
@@ -155,7 +150,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground">Remaining</p>
 
                 <p
-                  className={`mt-1 text-xl sm:text-2xl  font-bold ${
+                  className={`mt-1 text-xl font-bold sm:text-2xl ${
                     Number(budget.totalRemaining || 0) < 0
                       ? "text-destructive"
                       : ""
@@ -198,7 +193,7 @@ export default function DashboardPage() {
               <div className="mt-8">
                 <h3 className="mb-4 font-semibold">Budget by category</h3>
 
-                <div className="grid grid-cols-2  gap-10">
+                <div className="grid grid-cols-2 gap-10">
                   {(showAllBudgetCategories
                     ? budget.categories
                     : budget.categories.slice(0, 3)
@@ -245,7 +240,7 @@ export default function DashboardPage() {
         {accounts.length === 0 ? (
           <EmptyState message="No accounts yet." />
         ) : (
-          <div className="grid grid-cols-2 gap-2  md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-3">
             {accounts.map((account) => (
               <AccountCard key={account.id} account={account} />
             ))}
@@ -274,16 +269,17 @@ export default function DashboardPage() {
           {categorySpending.length === 0 ? (
             <EmptyState message="No expenses this month." />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 rounded-xl bg-card">
+            <div className="grid grid-cols-2 gap-2 rounded-xl bg-card sm:grid-cols-1">
               {categorySpending.map((item, index) => (
                 <Card
                   key={item.categoryId}
-                  className="grid grid-cols-4 sm:grid-cols-8  p-2 items-center"
+                  className="grid grid-cols-4 items-center p-2 sm:grid-cols-8"
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
                     {index + 1}
                   </span>
-                  <div className="flex flex-col col-span-3 sm:col-span-7 sm:px-6  sm:flex-row sm:justify-between gap-2">
+
+                  <div className="col-span-3 flex flex-col gap-2 sm:col-span-7 sm:flex-row sm:justify-between sm:px-6">
                     <span className="font-medium">{item.category}</span>
 
                     <span className="font-semibold">
@@ -313,11 +309,11 @@ export default function DashboardPage() {
           {recentTransactions.length === 0 ? (
             <EmptyState message="No expenses yet." />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-1 gap-1 rounded-xl border bg-card">
+            <div className="grid grid-cols-2 gap-1 rounded-xl border bg-card sm:grid-cols-1">
               {recentTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex flex-col sm:flex-row sm:justify-between border-b px-5 py-4 last:border-b-0"
+                  className="flex flex-col border-b px-5 py-4 last:border-b-0 sm:flex-row sm:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="font-medium">
@@ -335,7 +331,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
 
-                  <p className="whitespace-nowrap font-semibold text-destructive text-right ">
+                  <p className="whitespace-nowrap text-right font-semibold text-destructive">
                     -{formatMoney(transaction.amount)}{" "}
                     <span className="text-xs text-gray-500">birr</span>
                   </p>
@@ -375,17 +371,15 @@ function SummaryCard({ title, value = 0, negative = false }) {
 
 function AccountCard({ account }) {
   const allocated = Number(account.allocated || 0);
-
   const expenses = Number(account.expenses || 0);
-
   const balance = Number(account.balance || 0);
 
   return (
-    <div className="rounded-xl flex flex-col gap-1 border bg-card p-2">
+    <div className="flex flex-col gap-1 rounded-xl border bg-card p-2">
       {/* Account name */}
 
       <div>
-        <p className="font-semibold text-xl">{account.name}</p>
+        <p className="text-xl font-semibold">{account.name}</p>
 
         {account.type && (
           <p className="mt-1 text-sm text-muted-foreground">{account.type}</p>
@@ -394,12 +388,12 @@ function AccountCard({ account }) {
 
       {/* Current balance */}
 
-      <div className=" flex gap-2 sm:flex-col justify-end">
-        <div className="flex gap-1 items-baseline ">
+      <div className="flex justify-end gap-2 sm:flex-col">
+        <div className="flex items-baseline gap-1">
           <p className="text-sm text-muted-foreground">Balance:</p>
 
           <p
-            className={`text-l sm:text-2xl font-bold ${
+            className={`text-xl font-bold sm:text-2xl ${
               balance < 0 ? "text-destructive" : ""
             }`}
           >
@@ -411,20 +405,20 @@ function AccountCard({ account }) {
 
       {/* Account details */}
 
-      <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 ">
-        <div className="flex gap-1 sm:flex-col items-baseline justify-end">
+      <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+        <div className="flex items-baseline justify-end gap-1 sm:flex-col">
           <p className="text-muted-foreground">Allocated:</p>
 
-          <p className=" font-medium">
+          <p className="font-medium">
             {formatMoney(allocated)}{" "}
             <span className="text-xs text-gray-500">birr</span>
           </p>
         </div>
 
-        <div className="flex gap-1 sm:flex-col items-baseline justify-end">
+        <div className="flex items-baseline justify-end gap-1 sm:flex-col">
           <p className="text-muted-foreground">Expenses:</p>
 
-          <p className=" font-medium">
+          <p className="font-medium">
             {formatMoney(expenses)}{" "}
             <span className="text-xs text-gray-500">birr</span>
           </p>
@@ -439,57 +433,39 @@ function AccountCard({ account }) {
 // ==================================================
 
 function BudgetProgress({ item }) {
-  const percentage = Math.min(
-    Number(item.percentage || 0),
-    100,
-  );
+  const percentage = Math.min(Number(item.percentage || 0), 100);
 
   const spent = Number(item.spent || 0);
-
   const budgeted = Number(item.budgeted || 0);
-
   const remaining = Number(item.remaining || 0);
 
-  const fundedAmount = Number(
-    item.fundedAmount || 0,
-  );
+  const fundedAmount = Number(item.fundedAmount || 0);
 
-  const unfundedAmount = Number(
-    item.unfundedAmount || 0,
-  );
+  const unfundedAmount = Number(item.unfundedAmount || 0);
 
   const overBudget = spent > budgeted;
 
   let statusText = "Not funded";
-
-  let statusClass =
-    "bg-destructive/10 text-destructive";
+  let statusClass = "bg-destructive/10 text-destructive";
 
   if (item.fundingStatus === "FUNDED") {
     statusText = "Funded";
-    statusClass =
-      "bg-green-100 text-green-700";
+    statusClass = "bg-green-100 text-green-700";
   }
 
-  if (
-    item.fundingStatus ===
-    "PARTIALLY_FUNDED"
-  ) {
+  if (item.fundingStatus === "PARTIALLY_FUNDED") {
     statusText = "Partially funded";
-    statusClass =
-      "bg-yellow-100 text-yellow-700";
+    statusClass = "bg-yellow-100 text-yellow-700";
   }
 
   return (
     <div>
-      {/* HEADER */}
+      {/* Header */}
 
       <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <p className="font-medium">
-              {item.category}
-            </p>
+            <p className="font-medium">{item.category}</p>
 
             <span
               className={`rounded-full px-2 py-1 text-xs font-medium ${statusClass}`}
@@ -498,44 +474,32 @@ function BudgetProgress({ item }) {
             </span>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {item.account}
-          </p>
+          <p className="text-xs text-muted-foreground">{item.account}</p>
         </div>
 
         <div className="text-right text-sm">
           <p className="font-medium">
-            {formatMoney(spent)} /{" "}
-            {formatMoney(budgeted)}{" "}
-            <span className="text-xs text-gray-500">
-              birr
-            </span>
+            {formatMoney(spent)} / {formatMoney(budgeted)}{" "}
+            <span className="text-xs text-gray-500">birr</span>
           </p>
 
           <p
             className={
-              overBudget
-                ? "text-destructive"
-                : "text-muted-foreground"
+              overBudget ? "text-destructive" : "text-muted-foreground"
             }
           >
             {formatMoney(remaining)}{" "}
-            <span className="text-xs text-gray-500">
-              birr
-            </span>{" "}
-            remaining
+            <span className="text-xs text-gray-500">birr</span> remaining
           </p>
         </div>
       </div>
 
-      {/* BUDGET PROGRESS */}
+      {/* Budget progress */}
 
       <div className="h-2 overflow-hidden rounded-full bg-muted">
         <div
           className={`h-full rounded-full ${
-            overBudget
-              ? "bg-destructive"
-              : "bg-primary"
+            overBudget ? "bg-destructive" : "bg-primary"
           }`}
           style={{
             width: `${percentage}%`,
@@ -543,31 +507,23 @@ function BudgetProgress({ item }) {
         />
       </div>
 
-      {/* FUNDING DETAILS */}
+      {/* Funding details */}
 
       <div className="mt-2 text-xs text-muted-foreground">
         {item.fundingStatus === "FUNDED" && (
-          <span>
-            {formatMoney(fundedAmount)} birr funded
-          </span>
+          <span>{formatMoney(fundedAmount)} birr funded</span>
         )}
 
-        {item.fundingStatus ===
-          "PARTIALLY_FUNDED" && (
+        {item.fundingStatus === "PARTIALLY_FUNDED" && (
           <span>
             {formatMoney(fundedAmount)} birr funded
             {" • "}
-            {formatMoney(unfundedAmount)} birr
-            not funded
+            {formatMoney(unfundedAmount)} birr not funded
           </span>
         )}
 
-        {item.fundingStatus ===
-          "NOT_FUNDED" && (
-          <span>
-            {formatMoney(unfundedAmount)} birr not
-            funded
-          </span>
+        {item.fundingStatus === "NOT_FUNDED" && (
+          <span>{formatMoney(unfundedAmount)} birr not funded</span>
         )}
       </div>
     </div>

@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/require-user";
 
 // ======================================================
 // GET TRANSACTIONS
-// Supports filtering + pagination
+// Supports pagination
 // ======================================================
 
 export async function GET(request) {
@@ -13,10 +13,16 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
 
-    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+    const page = Math.max(
+      Number(searchParams.get("page")) || 1,
+      1,
+    );
 
     const limit = Math.min(
-      Math.max(Number(searchParams.get("limit")) || 20, 1),
+      Math.max(
+        Number(searchParams.get("limit")) || 20,
+        1,
+      ),
       100,
     );
 
@@ -30,26 +36,27 @@ export async function GET(request) {
       userId: user.id,
     };
 
-    const transactions = await prisma.transaction.findMany({
-      where,
+    const transactions =
+      await prisma.transaction.findMany({
+        where,
 
-      include: {
-        account: true,
+        include: {
+          account: true,
 
-        category: {
-          include: {
-            group: true,
+          category: {
+            include: {
+              group: true,
+            },
           },
         },
-      },
 
-      orderBy: {
-        date: "desc",
-      },
+        orderBy: {
+          date: "desc",
+        },
 
-      skip,
-      take: limit,
-    });
+        skip,
+        take: limit,
+      });
 
     const totalTransactions =
       await prisma.transaction.count({
@@ -68,8 +75,10 @@ export async function GET(request) {
         limit,
         totalTransactions,
         totalPages,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
+        hasNextPage:
+          page < totalPages,
+        hasPreviousPage:
+          page > 1,
       },
     });
   } catch (error) {
@@ -78,7 +87,10 @@ export async function GET(request) {
       error,
     );
 
-    if (error?.message === "UNAUTHORIZED") {
+    if (
+      error?.message ===
+      "UNAUTHORIZED"
+    ) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -91,9 +103,11 @@ export async function GET(request) {
 
     return NextResponse.json(
       {
-        error: "Failed to fetch transactions",
+        error:
+          "Failed to fetch transactions",
         details:
-          error?.message || "Unknown error",
+          error?.message ||
+          "Unknown error",
       },
       {
         status: 500,
@@ -120,19 +134,21 @@ export async function POST(request) {
       date,
     } = body;
 
-    // --------------------------------------------------
+    // ==================================================
     // VALIDATE AMOUNT
-    // --------------------------------------------------
+    // ==================================================
 
     if (
       amount === undefined ||
       amount === null ||
       amount === "" ||
+      !Number.isFinite(Number(amount)) ||
       Number(amount) <= 0
     ) {
       return NextResponse.json(
         {
-          error: "Amount must be greater than 0.",
+          error:
+            "Amount must be greater than 0.",
         },
         {
           status: 400,
@@ -142,14 +158,15 @@ export async function POST(request) {
 
     const expenseAmount = Number(amount);
 
-    // --------------------------------------------------
+    // ==================================================
     // VALIDATE ACCOUNT
-    // --------------------------------------------------
+    // ==================================================
 
     if (!accountId) {
       return NextResponse.json(
         {
-          error: "Account is required.",
+          error:
+            "Account is required.",
         },
         {
           status: 400,
@@ -157,14 +174,15 @@ export async function POST(request) {
       );
     }
 
-    // --------------------------------------------------
+    // ==================================================
     // VALIDATE CATEGORY
-    // --------------------------------------------------
+    // ==================================================
 
     if (!categoryId) {
       return NextResponse.json(
         {
-          error: "Category is required.",
+          error:
+            "Category is required.",
         },
         {
           status: 400,
@@ -176,22 +194,24 @@ export async function POST(request) {
     // FIND ACCOUNT BELONGING TO CURRENT USER
     // ==================================================
 
-    const account = await prisma.account.findFirst({
-      where: {
-        id: accountId,
-        userId: user.id,
-      },
+    const account =
+      await prisma.account.findFirst({
+        where: {
+          id: accountId,
+          userId: user.id,
+        },
 
-      include: {
-        incomeAllocations: true,
-        transactions: true,
-      },
-    });
+        include: {
+          incomeAllocations: true,
+          transactions: true,
+        },
+      });
 
     if (!account) {
       return NextResponse.json(
         {
-          error: "Account not found.",
+          error:
+            "Account not found.",
         },
         {
           status: 404,
@@ -203,20 +223,22 @@ export async function POST(request) {
     // FIND CATEGORY BELONGING TO CURRENT USER
     // ==================================================
 
-    const category = await prisma.category.findFirst({
-      where: {
-        id: categoryId,
+    const category =
+      await prisma.category.findFirst({
+        where: {
+          id: categoryId,
 
-        group: {
-          userId: user.id,
+          group: {
+            userId: user.id,
+          },
         },
-      },
-    });
+      });
 
     if (!category) {
       return NextResponse.json(
         {
-          error: "Category not found.",
+          error:
+            "Category not found.",
         },
         {
           status: 404,
@@ -224,36 +246,42 @@ export async function POST(request) {
       );
     }
 
-    // --------------------------------------------------
+    // ==================================================
     // CALCULATE ALLOCATED MONEY
-    // --------------------------------------------------
+    // ==================================================
 
     const allocated =
       account.incomeAllocations.reduce(
         (total, allocation) => {
           return (
             total +
-            Number(allocation.amount || 0)
+            Number(
+              allocation.amount || 0,
+            )
           );
         },
         0,
       );
 
-    // --------------------------------------------------
-    // CALCULATE EXPENSES
-    // --------------------------------------------------
+    // ==================================================
+    // CALCULATE MONEY RECEIVED
+    //
+    // DEBT_RECEIVED increases the account balance.
+    // It is NOT income, but it is available money.
+    // ==================================================
 
-    const expenses =
+    const debtReceived =
       account.transactions.reduce(
         (total, transaction) => {
           if (
-            transaction.type === "EXPENSE" ||
             transaction.type ===
-              "GOAL_CONTRIBUTION"
+            "DEBT_RECEIVED"
           ) {
             return (
               total +
-              Number(transaction.amount || 0)
+              Number(
+                transaction.amount || 0,
+              )
             );
           }
 
@@ -262,16 +290,78 @@ export async function POST(request) {
         0,
       );
 
-    // --------------------------------------------------
+    // ==================================================
+    // CALCULATE INCOME
+    // ==================================================
+
+    const income =
+      account.transactions.reduce(
+        (total, transaction) => {
+          if (
+            transaction.type ===
+            "INCOME"
+          ) {
+            return (
+              total +
+              Number(
+                transaction.amount || 0,
+              )
+            );
+          }
+
+          return total;
+        },
+        0,
+      );
+
+    // ==================================================
+    // CALCULATE EXPENSES
+    //
+    // Goal contributions also remove money from the
+    // account.
+    // ==================================================
+
+    const expenses =
+      account.transactions.reduce(
+        (total, transaction) => {
+          if (
+            transaction.type ===
+              "EXPENSE" ||
+            transaction.type ===
+              "GOAL_CONTRIBUTION"
+          ) {
+            return (
+              total +
+              Number(
+                transaction.amount || 0,
+              )
+            );
+          }
+
+          return total;
+        },
+        0,
+      );
+
+    // ==================================================
     // CURRENT ACCOUNT BALANCE
-    // --------------------------------------------------
+    //
+    // allocated
+    // + income
+    // + debt received
+    // - expenses
+    // - goal contributions
+    // ==================================================
 
     const availableBalance =
-      allocated - expenses;
+      allocated +
+      income +
+      debtReceived -
+      expenses;
 
-    // --------------------------------------------------
+    // ==================================================
     // CHECK AVAILABLE MONEY
-    // --------------------------------------------------
+    // ==================================================
 
     if (
       expenseAmount >
@@ -288,13 +378,14 @@ export async function POST(request) {
     }
 
     // ==================================================
-    // CREATE EXPENSE FOR CURRENT USER
+    // CREATE EXPENSE
     // ==================================================
 
     const transaction =
       await prisma.transaction.create({
         data: {
-          amount: String(expenseAmount),
+          amount:
+            String(expenseAmount),
 
           type: "EXPENSE",
 

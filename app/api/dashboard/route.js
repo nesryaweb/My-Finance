@@ -72,7 +72,7 @@ export async function GET() {
         // ------------------------------------------------
         // DEBT RECEIVED
         //
-        // Money borrowed and deposited into this account.
+        // Borrowed money received into this account.
         // This is NOT income.
         // ------------------------------------------------
 
@@ -86,6 +86,12 @@ export async function GET() {
 
         // ------------------------------------------------
         // MONEY-OUT TRANSACTIONS
+        //
+        // EXPENSE includes normal expenses AND debt
+        // payments.
+        //
+        // GOAL_CONTRIBUTION is kept separate because
+        // it represents targeted savings.
         // ------------------------------------------------
 
         transactions: {
@@ -135,8 +141,8 @@ export async function GET() {
     // EXPENSE
     // GOAL_CONTRIBUTION
     //
-    // DEBT_RECEIVED IS NOT INCLUDED HERE BECAUSE
-    // IT IS MONEY COMING INTO AN ACCOUNT.
+    // Debt payments are EXPENSE transactions and are
+    // therefore included.
     // ==================================================
 
     const allTransactions =
@@ -151,9 +157,6 @@ export async function GET() {
             ],
           },
 
-          // Extra ownership protection:
-          // transaction must belong to one of
-          // this user's accounts.
           account: {
             userId,
           },
@@ -198,6 +201,9 @@ export async function GET() {
 
     // ==================================================
     // ALL-TIME ALLOCATED INCOME
+    //
+    // This is the total amount of actual income that
+    // has been allocated into accounts.
     // ==================================================
 
     const totalAllocated = incomes.reduce(
@@ -219,24 +225,24 @@ export async function GET() {
     // into the user's accounts.
     // ==================================================
 
-    const totalDebtReceived = accounts.reduce(
-      (total, account) =>
-        total +
-        account.debtReceived.reduce(
-          (accountTotal, received) =>
-            accountTotal +
-            Number(received.amount || 0),
-          0,
-        ),
-      0,
-    );
+    const totalDebtReceived =
+      accounts.reduce(
+        (total, account) =>
+          total +
+          account.debtReceived.reduce(
+            (accountTotal, received) =>
+              accountTotal +
+              Number(received.amount || 0),
+            0,
+          ),
+        0,
+      );
 
     // ==================================================
     // UNALLOCATED INCOME
     //
-    // Only actual income can be unallocated.
-    // Debt received is already directly associated
-    // with an account.
+    // Income that has not yet been allocated to an
+    // account.
     // ==================================================
 
     const unallocatedIncome = Math.max(
@@ -245,24 +251,35 @@ export async function GET() {
     );
 
     // ==================================================
-    // ALL-TIME NORMAL EXPENSES
+    // ALL-TIME EXPENSES
     //
-    // Only EXPENSE transactions count here.
+    // ALL EXPENSE transactions count.
+    //
+    // This includes:
+    // - Normal expenses
+    // - Debt payments
+    //
+    // Goal contributions are NOT included here because
+    // they are targeted savings.
     // ==================================================
 
-    const totalExpenses = allTransactions
-      .filter(
-        (transaction) =>
-          transaction.type === "EXPENSE",
-      )
-      .reduce(
-        (total, transaction) =>
-          total + Number(transaction.amount || 0),
-        0,
-      );
+    const totalExpenses =
+      allTransactions
+        .filter(
+          (transaction) =>
+            transaction.type === "EXPENSE",
+        )
+        .reduce(
+          (total, transaction) =>
+            total +
+            Number(transaction.amount || 0),
+          0,
+        );
 
     // ==================================================
     // ALL-TIME GOAL CONTRIBUTIONS
+    //
+    // Kept separate from expenses.
     // ==================================================
 
     const totalGoalContributions =
@@ -274,46 +291,67 @@ export async function GET() {
         )
         .reduce(
           (total, transaction) =>
-            total + Number(transaction.amount || 0),
+            total +
+            Number(transaction.amount || 0),
           0,
         );
 
     // ==================================================
-    // ACTUAL REMAINING MONEY
+    // DASHBOARD TOTAL BALANCE
+    //
+    // ALL MONEY RECEIVED
     //
     // Income
     // + debt received
-    // - expenses
-    // - goal contributions
     //
-    // Debt received is NOT income.
+    // IMPORTANT:
+    // Unallocated income is INCLUDED.
+    //
+    // This represents all money that has come into
+    // the user's financial system.
     // ==================================================
 
-    const actualBalance =
+    const totalBalance =
       totalIncome +
-      totalDebtReceived -
-      totalExpenses -
-      totalGoalContributions;
+      totalDebtReceived;
+
+    // ==================================================
+    // DASHBOARD REMAINING
+    //
+    // Total balance
+    // - expenses
+    //
+    // Goal contributions are intentionally NOT deducted
+    // here because you requested:
+    //
+    // Remaining = Total Balance - Expenses
+    // ==================================================
+
+    const remaining =
+      totalBalance -
+      totalExpenses;
 
     // ==================================================
     // THIS MONTH'S INCOME
     // ==================================================
 
-    const monthlyIncome = incomes.filter(
-      (income) => {
-        const date = new Date(income.date);
+    const monthlyIncome =
+      incomes.filter((income) => {
+        const date = new Date(
+          income.date,
+        );
 
         return (
           date >= startOfMonth &&
           date < startOfNextMonth
         );
-      },
-    );
+      });
 
     const monthlyIncomeTotal =
       monthlyIncome.reduce(
         (total, income) =>
-          total + Number(income.amount || 0),
+          total +
+          Number(income.amount || 0),
         0,
       );
 
@@ -336,7 +374,7 @@ export async function GET() {
       );
 
     // ==================================================
-    // THIS MONTH'S NORMAL EXPENSES
+    // THIS MONTH'S EXPENSES
     // ==================================================
 
     const monthlyExpenses =
@@ -348,7 +386,8 @@ export async function GET() {
     const monthlyExpensesTotal =
       monthlyExpenses.reduce(
         (total, transaction) =>
-          total + Number(transaction.amount || 0),
+          total +
+          Number(transaction.amount || 0),
         0,
       );
 
@@ -366,27 +405,133 @@ export async function GET() {
     const monthlyGoalContributionsTotal =
       monthlyGoalContributions.reduce(
         (total, transaction) =>
-          total + Number(transaction.amount || 0),
+          total +
+          Number(transaction.amount || 0),
         0,
       );
 
     // ==================================================
-    // MONTHLY MONEY OUT
+    // MONTHLY DEBT PAYMENTS
     //
-    // Expenses + goal contributions
+    // Debt payments are EXPENSE transactions but are
+    // separated from normal spending.
+    // ==================================================
+
+    const monthlyDebtPayments =
+      monthlyExpenses.filter(
+        (transaction) =>
+          transaction.debtPaymentId,
+      );
+
+    const monthlyDebtPaymentsTotal =
+      monthlyDebtPayments.reduce(
+        (total, transaction) =>
+          total +
+          Number(transaction.amount || 0),
+        0,
+      );
+
+    // ==================================================
+    // MONTHLY NORMAL SPENDING
+    //
+    // Excludes debt payments.
+    // ==================================================
+
+    const monthlyNormalExpenses =
+      monthlyExpenses.filter(
+        (transaction) =>
+          !transaction.debtPaymentId,
+      );
+
+    const monthlyNormalExpensesTotal =
+      monthlyNormalExpenses.reduce(
+        (total, transaction) =>
+          total +
+          Number(transaction.amount || 0),
+        0,
+      );
+
+    // ==================================================
+    // SPENDING BY CATEGORY GROUP
+    //
+    // Debt payments are excluded because they have
+    // their own category.
+    // ==================================================
+
+    const monthlyGroupSpending = {};
+
+    monthlyNormalExpenses.forEach(
+      (transaction) => {
+        const groupName =
+          transaction.category?.group?.name ||
+          "Other";
+
+        if (
+          !monthlyGroupSpending[groupName]
+        ) {
+          monthlyGroupSpending[groupName] =
+            0;
+        }
+
+        monthlyGroupSpending[groupName] +=
+          Number(transaction.amount || 0);
+      },
+    );
+
+    const spendingGroups =
+      Object.entries(
+        monthlyGroupSpending,
+      )
+        .map(([group, amount]) => ({
+          group,
+          amount,
+        }))
+        .sort(
+          (a, b) =>
+            b.amount - a.amount,
+        );
+
+    // ==================================================
+    // MONTHLY AVAILABLE FOR SPENDING
+    //
+    // Monthly income
+    // - debt payments
+    // - targeted savings
+    //
+    // This is separate from the main dashboard totals.
+    // ==================================================
+
+    const availableForSpending =
+      monthlyIncomeTotal -
+      monthlyDebtPaymentsTotal -
+      monthlyGoalContributionsTotal;
+
+    // ==================================================
+    // MONTHLY REMAINING
+    //
+    // Monthly income
+    // - normal expenses
+    // - debt payments
+    // - targeted savings
+    // ==================================================
+
+    const monthlyRemaining =
+      monthlyIncomeTotal -
+      monthlyNormalExpensesTotal -
+      monthlyDebtPaymentsTotal -
+      monthlyGoalContributionsTotal;
+
+    // ==================================================
+    // MONTHLY MONEY OUT
     // ==================================================
 
     const monthlyMoneyOut =
-      monthlyExpensesTotal +
+      monthlyNormalExpensesTotal +
+      monthlyDebtPaymentsTotal +
       monthlyGoalContributionsTotal;
 
     // ==================================================
     // MONTHLY NET
-    //
-    // Income - expenses - goal contributions
-    //
-    // Debt received is intentionally NOT included
-    // because it is not income.
     // ==================================================
 
     const net =
@@ -409,7 +554,8 @@ export async function GET() {
     const monthlyBudgetExpensesTotal =
       monthlyBudgetExpenses.reduce(
         (total, transaction) =>
-          total + Number(transaction.amount || 0),
+          total +
+          Number(transaction.amount || 0),
         0,
       );
 
@@ -418,7 +564,7 @@ export async function GET() {
     //
     // Income allocated
     // + debt received
-    // - normal expenses
+    // - expenses
     // - goal contributions
     // ==================================================
 
@@ -516,22 +662,17 @@ export async function GET() {
 
           type: account.type,
 
-          // Actual income allocated here
           allocated,
 
-          // Borrowed money received here
           debtReceived,
 
-          // Normal expenses only
-          expenses: normalExpenses,
+          expenses:
+            normalExpenses,
 
-          // Goal money moved out
           goalContributions,
 
-          // Actual available money
           balance,
 
-          // Keep income as actual income only
           income: allocated,
 
           createdAt:
@@ -546,6 +687,7 @@ export async function GET() {
     // SPENDING BY CATEGORY
     //
     // Goal contributions have no category.
+    // Debt payments are excluded from budget spending.
     // ==================================================
 
     const categoryMap = {};
@@ -555,34 +697,42 @@ export async function GET() {
         (transaction) =>
           transaction.category,
       )
-      .forEach((transaction) => {
-        const categoryId =
-          transaction.category.id;
+      .forEach(
+        (transaction) => {
+          const categoryId =
+            transaction.category.id;
 
-        if (!categoryMap[categoryId]) {
-          categoryMap[categoryId] = {
-            categoryId,
+          if (
+            !categoryMap[categoryId]
+          ) {
+            categoryMap[categoryId] = {
+              categoryId,
 
-            category:
-              transaction.category.name,
+              category:
+                transaction.category.name,
 
-            amount: 0,
-          };
-        }
+              amount: 0,
+            };
+          }
 
-        categoryMap[categoryId].amount +=
-          Number(transaction.amount || 0);
-      });
+          categoryMap[
+            categoryId
+          ].amount += Number(
+            transaction.amount || 0,
+          );
+        },
+      );
 
     const categorySpending =
-      Object.values(categoryMap).sort(
-        (a, b) => b.amount - a.amount,
+      Object.values(
+        categoryMap,
+      ).sort(
+        (a, b) =>
+          b.amount - a.amount,
       );
 
     // ==================================================
     // CURRENT MONTH BUDGET
-    //
-    // ONLY THIS USER'S BUDGET
     // ==================================================
 
     const budget =
@@ -600,14 +750,10 @@ export async function GET() {
         include: {
           allocations: {
             where: {
-              // Allocation must belong to this
-              // user's account.
               account: {
                 userId,
               },
 
-              // Allocation category must belong
-              // to this user's category group.
               category: {
                 group: {
                   userId,
@@ -695,7 +841,7 @@ export async function GET() {
       );
 
       // ------------------------------------------------
-      // PROCESS EACH ACCOUNT SEPARATELY
+      // PROCESS EACH ACCOUNT
       // ------------------------------------------------
 
       Object.entries(
@@ -869,35 +1015,46 @@ export async function GET() {
     const recentTransactions =
       allTransactions
         .slice(0, 10)
-        .map((transaction) => ({
-          id: transaction.id,
+        .map(
+          (transaction) => ({
+            id: transaction.id,
 
-          type: transaction.type,
+            type:
+              transaction.type,
 
-          amount: Number(
-            transaction.amount || 0,
-          ),
+            amount: Number(
+              transaction.amount || 0,
+            ),
 
-          date: transaction.date,
+            date:
+              transaction.date,
 
-          note: transaction.note,
+            note:
+              transaction.note,
 
-          account:
-            transaction.account?.name ||
-            "Unknown account",
+            account:
+              transaction.account
+                ?.name ||
+              "Unknown account",
 
-          category:
-            transaction.category?.name ||
-            null,
+            category:
+              transaction.category
+                ?.name ||
+              null,
 
-          goal:
-            transaction.goalContribution
-              ?.goal?.name || null,
+            goal:
+              transaction
+                .goalContribution
+                ?.goal?.name ||
+              null,
 
-          debt:
-            transaction.debtPayment?.debt
-              ?.name || null,
-        }));
+            debt:
+              transaction
+                .debtPayment
+                ?.debt?.name ||
+              null,
+          }),
+        );
 
     // ==================================================
     // RESPONSE
@@ -915,37 +1072,58 @@ export async function GET() {
       // ==================================================
 
       totals: {
-        // Actual money currently available
-        balance: actualBalance,
+        // ----------------------------------------------
+        // ALL MONEY RECEIVED
+        //
+        // Income + debt received.
+        //
+        // IMPORTANT:
+        // Includes unallocated income.
+        // ----------------------------------------------
 
-        // Actual earned/received income
-        income: totalIncome,
+        balance:
+          totalBalance,
 
-        // Borrowed money received
-        debtReceived:
-          totalDebtReceived,
+        // ----------------------------------------------
+        // INCOME ALLOCATED TO ACCOUNTS
+        // ----------------------------------------------
 
-        // Income allocated to accounts
         allocated:
           totalAllocated,
 
-        // Income not yet allocated
-        unallocated:
-          unallocatedIncome,
+        // ----------------------------------------------
+        // ALL EXPENSES
+        //
+        // Includes debt payments.
+        // Does NOT include goal contributions.
+        // ----------------------------------------------
 
-        // Normal expenses
         expenses:
           totalExpenses,
 
-        // Money moved to financial goals
+        // ----------------------------------------------
+        // TOTAL BALANCE - EXPENSES
+        // ----------------------------------------------
+
+        remaining:
+          remaining,
+
+        // ----------------------------------------------
+        // ADDITIONAL DATA
+        // ----------------------------------------------
+
+        income:
+          totalIncome,
+
+        debtReceived:
+          totalDebtReceived,
+
+        unallocated:
+          unallocatedIncome,
+
         goalContributions:
           totalGoalContributions,
 
-        // Actual remaining money
-        remaining:
-          actualBalance,
-
-        // Monthly net income
         net,
       },
 
@@ -954,14 +1132,36 @@ export async function GET() {
       // ==================================================
 
       monthly: {
+        // Income received this month
         income:
           monthlyIncomeTotal,
 
+        // Normal spending
         expenses:
-          monthlyExpensesTotal,
+          monthlyNormalExpensesTotal,
 
+        // Debt payments
+        debtPayments:
+          monthlyDebtPaymentsTotal,
+
+        // Targeted savings
         goalContributions:
           monthlyGoalContributionsTotal,
+
+        // Everything that left money this month
+        moneyOut:
+          monthlyMoneyOut,
+
+        // Money available for normal spending
+        availableForSpending:
+          availableForSpending,
+
+        // Money left after everything this month
+        remaining:
+          monthlyRemaining,
+
+        // Spending grouped by category group
+        spendingGroups,
 
         net,
       },
@@ -972,11 +1172,14 @@ export async function GET() {
 
       budget: budget
         ? {
-            id: budget.id,
+            id:
+              budget.id,
 
-            month: budget.month,
+            month:
+              budget.month,
 
-            year: budget.year,
+            year:
+              budget.year,
 
             totalBudgeted,
 
