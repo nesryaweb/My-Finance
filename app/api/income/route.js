@@ -32,7 +32,55 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(income);
+    // ==================================================
+    // FORMAT INCOME
+    // ==================================================
+
+    const formattedIncome = income.map((item) => {
+      const amount = Number(item.amount || 0);
+
+      const totalAllocated = item.allocations.reduce((total, allocation) => {
+        return total + Number(allocation.amount || 0);
+      }, 0);
+
+      const remaining = Math.max(amount - totalAllocated, 0);
+
+      return {
+        id: item.id,
+
+        amount,
+
+        note: item.note,
+
+        date: item.date,
+
+        createdAt: item.createdAt,
+
+        updatedAt: item.updatedAt,
+
+        totalAllocated,
+
+        remaining,
+
+        allocations: item.allocations.map((allocation) => ({
+          id: allocation.id,
+
+          amount: Number(allocation.amount || 0),
+
+          incomeId: allocation.incomeId,
+
+          accountId: allocation.accountId,
+
+          createdAt: allocation.createdAt,
+
+          updatedAt: allocation.updatedAt,
+
+          account: allocation.account,
+        })),
+      };
+    });
+
+    return NextResponse.json(formattedIncome);
   } catch (error) {
     console.error("Failed to fetch income:", error);
 

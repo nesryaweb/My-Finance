@@ -25,59 +25,121 @@ export async function GET() {
       },
     });
 
-    const accountsWithBalance = accounts.map((account) => {
-      // ------------------------------------------------
-      // TOTAL INCOME ALLOCATED TO THIS ACCOUNT
-      // ------------------------------------------------
+    const accountsWithBalance = accounts.map(
+      (account) => {
+        // ------------------------------------------------
+        // TOTAL INCOME ALLOCATED TO THIS ACCOUNT
+        // ------------------------------------------------
 
-      const allocated = account.incomeAllocations.reduce(
-        (total, allocation) => {
-          return total + Number(allocation.amount || 0);
-        },
-        0,
-      );
+        const allocated =
+          account.incomeAllocations.reduce(
+            (total, allocation) => {
+              return (
+                total +
+                Number(
+                  allocation.amount || 0,
+                )
+              );
+            },
+            0,
+          );
 
-      // ------------------------------------------------
-      // TOTAL EXPENSES FROM THIS ACCOUNT
-      // ------------------------------------------------
+        // ------------------------------------------------
+        // TOTAL MONEY RECEIVED FROM DEBT
+        // ------------------------------------------------
 
-      const expenses = account.transactions.reduce(
-        (total, transaction) => {
-          if (
-            transaction.type === "EXPENSE" ||
-            transaction.type === "GOAL_CONTRIBUTION"
-          ) {
-            return total + Number(transaction.amount || 0);
-          }
+        const debtReceived =
+          account.transactions.reduce(
+            (total, transaction) => {
+              if (
+                transaction.type ===
+                "DEBT_RECEIVED"
+              ) {
+                return (
+                  total +
+                  Number(
+                    transaction.amount || 0,
+                  )
+                );
+              }
 
-          return total;
-        },
-        0,
-      );
+              return total;
+            },
+            0,
+          );
 
-      // ------------------------------------------------
-      // CURRENT ACCOUNT BALANCE
-      // ------------------------------------------------
+        // ------------------------------------------------
+        // TOTAL EXPENSES FROM THIS ACCOUNT
+        // ------------------------------------------------
 
-      const balance = allocated - expenses;
+        const expenses =
+          account.transactions.reduce(
+            (total, transaction) => {
+              if (
+                transaction.type ===
+                  "EXPENSE" ||
+                transaction.type ===
+                  "GOAL_CONTRIBUTION"
+              ) {
+                return (
+                  total +
+                  Number(
+                    transaction.amount || 0,
+                  )
+                );
+              }
 
-      return {
-        id: account.id,
-        name: account.name,
-        type: account.type,
-        allocated,
-        expenses,
-        balance,
-        createdAt: account.createdAt,
-        updatedAt: account.updatedAt,
-      };
-    });
+              return total;
+            },
+            0,
+          );
 
-    return NextResponse.json(accountsWithBalance);
+        // ------------------------------------------------
+        // CURRENT ACCOUNT BALANCE
+        // ------------------------------------------------
+
+        const balance =
+          allocated +
+          debtReceived -
+          expenses;
+
+        return {
+          id: account.id,
+
+          name: account.name,
+
+          type: account.type,
+
+          allocated,
+
+          debtReceived,
+
+          expenses,
+
+          balance,
+
+          createdAt:
+            account.createdAt,
+
+          updatedAt:
+            account.updatedAt,
+        };
+      },
+    );
+
+    return NextResponse.json(
+      accountsWithBalance,
+    );
   } catch (error) {
-    console.error("Failed to fetch accounts:", error);
+    console.error(
+      "Failed to fetch accounts:",
+      error,
+    );
 
-    if (error?.message === "UNAUTHORIZED") {
+    if (
+      error?.message ===
+      "UNAUTHORIZED"
+    ) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -90,8 +152,11 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        error: "Failed to fetch accounts.",
-        details: error?.message || "Unknown error",
+        error:
+          "Failed to fetch accounts.",
+        details:
+          error?.message ||
+          "Unknown error",
       },
       {
         status: 500,
@@ -108,10 +173,15 @@ export async function POST(request) {
   try {
     const user = await requireUser();
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const name = body.name?.trim();
-    const type = body.type?.trim() || null;
+    const name =
+      body.name?.trim();
+
+    const type =
+      body.type?.trim() ||
+      null;
 
     // --------------------------------------------------
     // VALIDATE NAME
@@ -120,7 +190,8 @@ export async function POST(request) {
     if (!name) {
       return NextResponse.json(
         {
-          error: "Account name is required.",
+          error:
+            "Account name is required.",
         },
         {
           status: 400,
@@ -132,33 +203,53 @@ export async function POST(request) {
     // CREATE ACCOUNT FOR CURRENT USER
     // --------------------------------------------------
 
-    const account = await prisma.account.create({
-      data: {
-        name,
-        type,
-        userId: user.id,
-      },
-    });
+    const account =
+      await prisma.account.create({
+        data: {
+          name,
+
+          type,
+
+          userId: user.id,
+        },
+      });
 
     return NextResponse.json(
       {
         id: account.id,
+
         name: account.name,
+
         type: account.type,
+
         allocated: 0,
+
+        debtReceived: 0,
+
         expenses: 0,
+
         balance: 0,
-        createdAt: account.createdAt,
-        updatedAt: account.updatedAt,
+
+        createdAt:
+          account.createdAt,
+
+        updatedAt:
+          account.updatedAt,
       },
       {
         status: 201,
       },
     );
   } catch (error) {
-    console.error("Failed to create account:", error);
+    console.error(
+      "Failed to create account:",
+      error,
+    );
 
-    if (error?.message === "UNAUTHORIZED") {
+    if (
+      error?.message ===
+      "UNAUTHORIZED"
+    ) {
       return NextResponse.json(
         {
           error: "Unauthorized",
@@ -171,8 +262,11 @@ export async function POST(request) {
 
     return NextResponse.json(
       {
-        error: "Failed to create account.",
-        details: error?.message || "Unknown error",
+        error:
+          "Failed to create account.",
+        details:
+          error?.message ||
+          "Unknown error",
       },
       {
         status: 500,

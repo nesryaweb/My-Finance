@@ -6,8 +6,10 @@ export default function DebtsPage() {
   const [debts, setDebts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deletingDebtId, setDeletingDebtId] = useState(null);
 
   const [showAddDebt, setShowAddDebt] = useState(false);
+  const [receiveDebt, setReceiveDebt] = useState(null);
   const [paymentDebt, setPaymentDebt] = useState(null);
 
   async function loadDebts() {
@@ -30,7 +32,61 @@ export default function DebtsPage() {
       setLoading(false);
     }
   }
+  async function deleteDebt(debt) {
+    const hasPaymentHistory = debt.payments?.length > 0;
 
+    const hasReceivedHistory = debt.received?.length > 0;
+
+    let message =
+      `Are you sure you want to delete "${debt.name}"?\n\n` +
+      "This action cannot be undone.";
+
+    if (hasPaymentHistory || hasReceivedHistory) {
+      message += "\n\nWARNING: This debt has financial history.";
+
+      if (hasPaymentHistory) {
+        message += `\n• ${debt.payments.length} payment record(s) will be deleted.`;
+      }
+
+      if (hasReceivedHistory) {
+        message += `\n• ${debt.received.length} received-money record(s) will be deleted.`;
+      }
+
+      message += "\n• The related transaction records will also be deleted.";
+    }
+
+    message +=
+      "\n\nThe money that was already received or paid is NOT automatically returned to the account.";
+
+    const confirmed = window.confirm(message);
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingDebtId(debt.id);
+      setError("");
+
+      const response = await fetch(`/api/debts/${debt.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete debt");
+      }
+
+      await loadDebts();
+    } catch (error) {
+      console.error(error);
+
+      setError(error.message || "Failed to delete debt.");
+    } finally {
+      setDeletingDebtId(null);
+    }
+  }
   useEffect(() => {
     loadDebts();
   }, []);
@@ -61,7 +117,7 @@ export default function DebtsPage() {
           <h1 className="text-3xl font-bold">Debt Management</h1>
 
           <p className="mt-1 text-muted-foreground">
-            Track what you owe and manage your debt payments.
+            Track what you owe and manage borrowed money and debt payments.
           </p>
         </div>
 
@@ -70,7 +126,7 @@ export default function DebtsPage() {
             setError("");
             setShowAddDebt(true);
           }}
-          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
         >
           Add debt
         </button>
@@ -90,7 +146,7 @@ export default function DebtsPage() {
           SUMMARY
       ================================================== */}
 
-      <section className="mb-8 grid gap-4 grid-cols-2 sm:grid-cols-3">
+      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <SummaryCard label="Total debt" value={totalOriginal} />
 
         <SummaryCard label="Total paid" value={totalPaid} />
@@ -117,21 +173,27 @@ export default function DebtsPage() {
 
             <button
               onClick={() => setShowAddDebt(true)}
-              className="mt-4 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+              className="mt-4 cursor-pointer rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
             >
               Add debt
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {debts.map((debt) => (
               <DebtCard
                 key={debt.id}
                 debt={debt}
+                deleting={deletingDebtId === debt.id}
+                onReceive={() => {
+                  setError("");
+                  setReceiveDebt(debt);
+                }}
                 onPay={() => {
                   setError("");
                   setPaymentDebt(debt);
                 }}
+                onDelete={() => deleteDebt(debt)}
               />
             ))}
           </div>
@@ -147,6 +209,21 @@ export default function DebtsPage() {
           onClose={() => setShowAddDebt(false)}
           onSaved={async () => {
             setShowAddDebt(false);
+            await loadDebts();
+          }}
+        />
+      )}
+
+      {/* ==================================================
+          RECEIVE MONEY MODAL
+      ================================================== */}
+
+      {receiveDebt && (
+        <ReceiveDebtModal
+          debt={receiveDebt}
+          onClose={() => setReceiveDebt(null)}
+          onSaved={async () => {
+            setReceiveDebt(null);
             await loadDebts();
           }}
         />
@@ -190,8 +267,7 @@ function SummaryCard({ label, value }) {
 // ======================================================
 // DEBT CARD
 // ======================================================
-
-function DebtCard({ debt, onPay }) {
+function DebtCard({ debt, deleting, onReceive, onPay, onDelete }) {
   const original = Number(debt.originalAmount || 0);
 
   const paid = Number(debt.totalPaid || 0);
@@ -243,22 +319,42 @@ function DebtCard({ debt, onPay }) {
             </p>
           )}
         </div>
+      </div>
 
-        {!isPaid && (
+      {/* ==================================================
+          ACTIONS
+      ================================================== */}
+
+      {!isPaid && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button
+            onClick={onReceive}
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm font-medium"
+          >
+            Receive money
+          </button>
+
           <button
             onClick={onPay}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground"
           >
             Make payment
           </button>
-        )}
-      </div>
+          <button
+  onClick={onDelete}
+  disabled={deleting}
+  className="rounded-md  border cursor-pointer border-destructive/30 px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {deleting ? "Deleting..." : "Delete debt"}
+</button>
+        </div>
+      )}
 
       {/* ==================================================
           AMOUNTS
       ================================================== */}
 
-      <div className="mt-6 grid grid-2 gap-4">
+      <div className="mt-6 grid grid-cols-3 gap-4">
         <div>
           <p className="text-xs text-muted-foreground">Original</p>
 
@@ -418,15 +514,10 @@ function AddDebtModal({ onClose, onSaved }) {
 
         body: JSON.stringify({
           name,
-
           originalAmount,
-
           minimumPayment,
-
           priority,
-
           dueDate,
-
           note,
         }),
       });
@@ -447,33 +538,25 @@ function AddDebtModal({ onClose, onSaved }) {
 
   return (
     <Modal>
-      {/* ==================================================
-          HEADER
-      ================================================== */}
-
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h2 className="text-xl font-semibold">Add debt</h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Enter the amount you currently owe.
+            Enter the total amount you owe.
           </p>
         </div>
 
         <button
           onClick={onClose}
           disabled={saving}
-          className="text-xl text-muted-foreground"
+          className="text-xl cursor-pointer text-muted-foreground"
         >
           ×
         </button>
       </div>
 
       {error && <ModalError message={error} />}
-
-      {/* ==================================================
-          FORM
-      ================================================== */}
 
       <div className="space-y-4">
         <Field
@@ -509,8 +592,7 @@ function AddDebtModal({ onClose, onSaved }) {
         />
 
         <p className="-mt-2 text-xs text-muted-foreground">
-          Lower numbers are paid first. For example, Priority 1 comes before
-          Priority 2.
+          Lower numbers are paid first. Priority 1 comes before Priority 2.
         </p>
 
         <Field
@@ -529,6 +611,218 @@ function AddDebtModal({ onClose, onSaved }) {
         />
       </div>
 
+      <div className="mt-6 flex justify-end gap-2">
+        <button
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-md cursor-pointer border px-4 py-2 text-sm"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={save}
+          disabled={saving}
+          className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Add debt"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// ======================================================
+// RECEIVE DEBT MODAL
+// ======================================================
+
+function ReceiveDebtModal({ debt, onClose, onSaved }) {
+  const [accounts, setAccounts] = useState([]);
+
+  const [accountId, setAccountId] = useState("");
+
+  const [amount, setAmount] = useState("");
+
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+
+  const [note, setNote] = useState("");
+
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
+
+  const [saving, setSaving] = useState(false);
+
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadAccounts() {
+      try {
+        const response = await fetch("/api/accounts");
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load accounts");
+        }
+
+        setAccounts(Array.isArray(data) ? data : []);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoadingAccounts(false);
+      }
+    }
+
+    loadAccounts();
+  }, []);
+
+  async function receive() {
+    if (!accountId) {
+      setError("Please select the account where you received the money.");
+      return;
+    }
+
+    if (!amount || Number(amount) <= 0) {
+      setError("Received amount must be greater than 0.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+
+      const response = await fetch(`/api/debts/${debt.id}/receive`, {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          accountId,
+          amount,
+          date,
+          note,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to record borrowed money");
+      }
+
+      await onSaved();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal>
+      {/* ==================================================
+          HEADER
+      ================================================== */}
+
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">Receive borrowed money</h2>
+
+          <p className="mt-1 text-sm text-muted-foreground">{debt.name}</p>
+        </div>
+
+        <button
+          onClick={onClose}
+          disabled={saving}
+          className="text-xl cursor-pointer text-muted-foreground"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* ==================================================
+          INFORMATION
+      ================================================== */}
+
+      <div className="mb-5 rounded-lg bg-muted p-4">
+        <p className="text-sm text-muted-foreground">Debt recorded</p>
+
+        <p className="mt-1 text-2xl font-bold">
+          {Number(debt.originalAmount).toLocaleString()}{" "}
+          <span className="text-xs text-gray-500">birr</span>
+        </p>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          This will add the received amount to the selected account. It will not
+          be counted as income.
+        </p>
+      </div>
+
+      {error && <ModalError message={error} />}
+
+      {/* ==================================================
+          ACCOUNTS
+      ================================================== */}
+
+      {loadingAccounts ? (
+        <p className="text-sm text-muted-foreground">Loading accounts...</p>
+      ) : accounts.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-4 text-center">
+          <p className="font-medium">No accounts available</p>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create an account first.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Receive into
+            </label>
+
+            <select
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+              className="w-full rounded-md border px-3 py-2"
+            >
+              <option value="">Select account</option>
+
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} —{" "}
+                  {Number(account.balance || 0).toLocaleString()} birr available
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Field
+            label="Amount received"
+            type="number"
+            placeholder="Amount"
+            value={amount}
+            onChange={setAmount}
+          />
+
+          <Field
+            label="Date received"
+            type="date"
+            value={date}
+            onChange={setDate}
+          />
+
+          <Field
+            label="Note (optional)"
+            type="text"
+            placeholder="What was the money for?"
+            value={note}
+            onChange={setNote}
+          />
+        </div>
+      )}
+
       {/* ==================================================
           ACTIONS
       ================================================== */}
@@ -537,17 +831,17 @@ function AddDebtModal({ onClose, onSaved }) {
         <button
           onClick={onClose}
           disabled={saving}
-          className="rounded-md border px-4 py-2 text-sm"
+          className="rounded-md cursor-pointer border px-4 py-2 text-sm"
         >
           Cancel
         </button>
 
         <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+          onClick={receive}
+          disabled={saving || loadingAccounts || accounts.length === 0}
+          className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
         >
-          {saving ? "Saving..." : "Add debt"}
+          {saving ? "Processing..." : "Record money received"}
         </button>
       </div>
     </Modal>
@@ -662,7 +956,7 @@ function PaymentModal({ debt, onClose, onSaved }) {
         <button
           onClick={onClose}
           disabled={saving}
-          className="text-xl text-muted-foreground"
+          className="text-xl cursor-pointer text-muted-foreground"
         >
           ×
         </button>
@@ -712,8 +1006,7 @@ function PaymentModal({ debt, onClose, onSaved }) {
               {accounts.map((account) => (
                 <option key={account.id} value={account.id}>
                   {account.name} —{" "}
-                  {Number(account.balance || 0).toLocaleString()}{" "}
-                  <span className="text-xs text-gray-500">birr</span> available
+                  {Number(account.balance || 0).toLocaleString()} birr available
                 </option>
               ))}
             </select>
@@ -752,7 +1045,7 @@ function PaymentModal({ debt, onClose, onSaved }) {
         <button
           onClick={onClose}
           disabled={saving}
-          className="rounded-md border px-4 py-2 text-sm"
+          className="rounded-md cursor-pointer border px-4 py-2 text-sm"
         >
           Cancel
         </button>
@@ -760,7 +1053,7 @@ function PaymentModal({ debt, onClose, onSaved }) {
         <button
           onClick={pay}
           disabled={saving || loadingAccounts || accounts.length === 0}
-          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+          className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
         >
           {saving ? "Processing..." : "Make payment"}
         </button>

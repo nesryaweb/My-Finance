@@ -24,9 +24,29 @@ export async function GET(request, { params }) {
             account: true,
           },
 
-          orderBy: {
-            date: "desc",
+          orderBy: [
+            {
+              date: "desc",
+            },
+            {
+              createdAt: "desc",
+            },
+          ],
+        },
+
+        received: {
+          include: {
+            account: true,
           },
+
+          orderBy: [
+            {
+              date: "desc",
+            },
+            {
+              createdAt: "desc",
+            },
+          ],
         },
       },
     });
@@ -38,23 +58,42 @@ export async function GET(request, { params }) {
         },
         {
           status: 404,
-        }
+        },
       );
     }
 
     const originalAmount = Number(
-      debt.originalAmount || 0
+      debt.originalAmount || 0,
     );
 
     const totalPaid = debt.payments.reduce(
-      (total, payment) =>
-        total + Number(payment.amount || 0),
-      0
+      (total, payment) => {
+        return (
+          total +
+          Number(payment.amount || 0)
+        );
+      },
+      0,
+    );
+
+    const totalReceived = debt.received.reduce(
+      (total, received) => {
+        return (
+          total +
+          Number(received.amount || 0)
+        );
+      },
+      0,
     );
 
     const remaining = Math.max(
       originalAmount - totalPaid,
-      0
+      0,
+    );
+
+    const remainingToReceive = Math.max(
+      originalAmount - totalReceived,
+      0,
     );
 
     return NextResponse.json({
@@ -65,15 +104,18 @@ export async function GET(request, { params }) {
       originalAmount,
 
       minimumPayment:
-        debt.minimumPayment
+        debt.minimumPayment !== null &&
+        debt.minimumPayment !== undefined
           ? Number(
-              debt.minimumPayment
+              debt.minimumPayment,
             )
           : null,
 
       dueDate: debt.dueDate,
 
       note: debt.note,
+
+      priority: debt.priority,
 
       status:
         remaining <= 0
@@ -84,6 +126,10 @@ export async function GET(request, { params }) {
 
       remaining,
 
+      totalReceived,
+
+      remainingToReceive,
+
       createdAt: debt.createdAt,
 
       updatedAt: debt.updatedAt,
@@ -93,7 +139,7 @@ export async function GET(request, { params }) {
           id: payment.id,
 
           amount: Number(
-            payment.amount || 0
+            payment.amount || 0,
           ),
 
           date: payment.date,
@@ -110,35 +156,66 @@ export async function GET(request, { params }) {
 
           createdAt:
             payment.createdAt,
-        })
+        }),
+      ),
+
+      received: debt.received.map(
+        (received) => ({
+          id: received.id,
+
+          amount: Number(
+            received.amount || 0,
+          ),
+
+          date: received.date,
+
+          note: received.note,
+
+          debtId:
+            received.debtId,
+
+          accountId:
+            received.accountId,
+
+          account:
+            received.account,
+
+          createdAt:
+            received.createdAt,
+        }),
       ),
     });
   } catch (error) {
     console.error(
       "Failed to fetch debt:",
-      error
+      error,
     );
 
-    if (error?.message === "UNAUTHORIZED") {
+    if (
+      error?.message ===
+      "UNAUTHORIZED"
+    ) {
       return NextResponse.json(
         {
           error: "Unauthorized",
         },
         {
           status: 401,
-        }
+        },
       );
     }
 
     return NextResponse.json(
       {
-        error: "Failed to fetch debt.",
+        error:
+          "Failed to fetch debt.",
         details:
-          error?.message || "Unknown error",
+          error?.message ||
+          "Unknown error",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }
@@ -153,50 +230,71 @@ export async function PUT(request, { params }) {
 
     const { id } = await params;
 
-    const body = await request.json();
+    const body =
+      await request.json();
 
-    const name = body.name?.trim();
+    const name =
+      body.name?.trim();
 
-    const originalAmount = Number(
-      body.originalAmount
-    );
+    const originalAmount =
+      Number(
+        body.originalAmount,
+      );
 
     const minimumPayment =
-      body.minimumPayment !== undefined &&
+      body.minimumPayment !==
+        undefined &&
       body.minimumPayment !== ""
-        ? Number(body.minimumPayment)
+        ? Number(
+            body.minimumPayment,
+          )
         : null;
 
-    const dueDate = body.dueDate
-      ? new Date(body.dueDate)
-      : null;
+    const priority =
+      body.priority !==
+        undefined &&
+      body.priority !== ""
+        ? Number(
+            body.priority,
+          )
+        : 1;
+
+    const dueDate =
+      body.dueDate
+        ? new Date(
+            body.dueDate,
+          )
+        : null;
 
     const note =
-      body.note?.trim() || null;
+      body.note?.trim() ||
+      null;
 
     // ==================================================
-    // FIND DEBT BELONGING TO CURRENT USER
+    // FIND DEBT
     // ==================================================
 
-    const debt = await prisma.debt.findFirst({
-      where: {
-        id,
-        userId: user.id,
-      },
+    const debt =
+      await prisma.debt.findFirst({
+        where: {
+          id,
+          userId: user.id,
+        },
 
-      include: {
-        payments: true,
-      },
-    });
+        include: {
+          payments: true,
+        },
+      });
 
     if (!debt) {
       return NextResponse.json(
         {
-          error: "Debt not found.",
+          error:
+            "Debt not found.",
         },
         {
           status: 404,
-        }
+        },
       );
     }
 
@@ -212,7 +310,7 @@ export async function PUT(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -221,7 +319,9 @@ export async function PUT(request, { params }) {
     // ==================================================
 
     if (
-      !Number.isFinite(originalAmount) ||
+      !Number.isFinite(
+        originalAmount,
+      ) ||
       originalAmount <= 0
     ) {
       return NextResponse.json(
@@ -231,37 +331,42 @@ export async function PUT(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
     // ==================================================
-    // CALCULATE TOTAL PAID
+    // TOTAL PAID
     // ==================================================
 
     const totalPaid =
       debt.payments.reduce(
-        (total, payment) =>
-          total +
-          Number(
-            payment.amount || 0
-          ),
-        0
+        (total, payment) => {
+          return (
+            total +
+            Number(
+              payment.amount || 0,
+            )
+          );
+        },
+        0,
       );
 
     // ==================================================
-    // PREVENT ORIGINAL AMOUNT FROM
-    // BEING LOWER THAN ALREADY PAID
+    // CANNOT LOWER DEBT BELOW PAID AMOUNT
     // ==================================================
 
-    if (originalAmount < totalPaid) {
+    if (
+      originalAmount <
+      totalPaid
+    ) {
       return NextResponse.json(
         {
           error: `Original amount cannot be less than the ${totalPaid.toLocaleString()} birr already paid.`,
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -270,10 +375,11 @@ export async function PUT(request, { params }) {
     // ==================================================
 
     if (
-      minimumPayment !== null &&
+      minimumPayment !==
+        null &&
       (
         !Number.isFinite(
-          minimumPayment
+          minimumPayment,
         ) ||
         minimumPayment <= 0
       )
@@ -285,7 +391,28 @@ export async function PUT(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
+      );
+    }
+
+    // ==================================================
+    // VALIDATE PRIORITY
+    // ==================================================
+
+    if (
+      !Number.isInteger(
+        priority,
+      ) ||
+      priority < 1
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Priority must be a whole number greater than 0.",
+        },
+        {
+          status: 400,
+        },
       );
     }
 
@@ -296,27 +423,30 @@ export async function PUT(request, { params }) {
     if (
       dueDate &&
       Number.isNaN(
-        dueDate.getTime()
+        dueDate.getTime(),
       )
     ) {
       return NextResponse.json(
         {
-          error: "Invalid due date.",
+          error:
+            "Invalid due date.",
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
     // ==================================================
-    // CALCULATE NEW STATUS
+    // STATUS
     // ==================================================
 
-    const remaining = Math.max(
-      originalAmount - totalPaid,
-      0
-    );
+    const remaining =
+      Math.max(
+        originalAmount -
+          totalPaid,
+        0,
+      );
 
     const status =
       remaining <= 0
@@ -324,7 +454,7 @@ export async function PUT(request, { params }) {
         : "ACTIVE";
 
     // ==================================================
-    // UPDATE ONLY CURRENT USER'S DEBT
+    // UPDATE
     // ==================================================
 
     const updatedDebt =
@@ -338,15 +468,18 @@ export async function PUT(request, { params }) {
 
           originalAmount:
             String(
-              originalAmount
+              originalAmount,
             ),
 
           minimumPayment:
-            minimumPayment !== null
+            minimumPayment !==
+            null
               ? String(
-                  minimumPayment
+                  minimumPayment,
                 )
               : null,
+
+          priority,
 
           dueDate,
 
@@ -357,19 +490,26 @@ export async function PUT(request, { params }) {
       });
 
     return NextResponse.json({
-      ...updatedDebt,
+      id: updatedDebt.id,
+
+      name:
+        updatedDebt.name,
 
       originalAmount:
         Number(
-          updatedDebt.originalAmount
+          updatedDebt.originalAmount,
         ),
 
       minimumPayment:
-        updatedDebt.minimumPayment
+        updatedDebt.minimumPayment !==
+        null
           ? Number(
-              updatedDebt.minimumPayment
+              updatedDebt.minimumPayment,
             )
           : null,
+
+      priority:
+        updatedDebt.priority,
 
       dueDate:
         updatedDebt.dueDate,
@@ -383,118 +523,210 @@ export async function PUT(request, { params }) {
       totalPaid,
 
       remaining,
+
+      createdAt:
+        updatedDebt.createdAt,
+
+      updatedAt:
+        updatedDebt.updatedAt,
     });
   } catch (error) {
     console.error(
       "Failed to update debt:",
-      error
+      error,
     );
 
-    if (error?.message === "UNAUTHORIZED") {
+    if (
+      error?.message ===
+      "UNAUTHORIZED"
+    ) {
       return NextResponse.json(
         {
           error: "Unauthorized",
         },
         {
           status: 401,
-        }
+        },
       );
     }
 
     return NextResponse.json(
       {
-        error: "Failed to update debt.",
+        error:
+          "Failed to update debt.",
         details:
-          error?.message || "Unknown error",
+          error?.message ||
+          "Unknown error",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }
 
 // ======================================================
 // DELETE DEBT
+//
+// A debt can ALWAYS be deleted.
+//
+// The API deliberately does not block deletion when
+// payment or received history exists.
+//
+// The frontend should warn the user before deletion.
 // ======================================================
 
 export async function DELETE(
   request,
-  { params }
+  { params },
 ) {
   try {
-    const user = await requireUser();
+    const user =
+      await requireUser();
 
-    const { id } = await params;
+    const { id } =
+      await params;
 
     // ==================================================
     // FIND DEBT BELONGING TO CURRENT USER
     // ==================================================
 
-    const debt = await prisma.debt.findFirst({
-      where: {
-        id,
-        userId: user.id,
-      },
+    const debt =
+      await prisma.debt.findFirst({
+        where: {
+          id,
+          userId: user.id,
+        },
 
-      include: {
-        payments: true,
-      },
-    });
+        include: {
+          payments: true,
+          received: true,
+        },
+      });
 
     if (!debt) {
       return NextResponse.json(
         {
-          error: "Debt not found.",
+          error:
+            "Debt not found.",
         },
         {
           status: 404,
-        }
-      );
-    }
-
-    // ==================================================
-    // PREVENT DELETING A DEBT WITH PAYMENTS
-    // ==================================================
-
-    if (debt.payments.length > 0) {
-      return NextResponse.json(
-        {
-          error:
-            "This debt has payment history and cannot be deleted.",
         },
-        {
-          status: 400,
-        }
       );
     }
 
-    await prisma.debt.delete({
-      where: {
-        id: debt.id,
+    // ==================================================
+    // DELETE
+    //
+    // DebtPayment and DebtReceived use onDelete:
+    // Cascade in the Prisma schema, so their records
+    // are removed together with the debt.
+    //
+    // Their related Transaction records must be handled
+    // separately because the Transaction relation does
+    // not currently have onDelete: Cascade.
+    // ==================================================
+
+    await prisma.$transaction(
+      async (tx) => {
+        // ------------------------------------------------
+        // DELETE TRANSACTIONS CONNECTED TO PAYMENTS
+        // ------------------------------------------------
+
+        if (
+          debt.payments.length >
+          0
+        ) {
+          await tx.transaction.deleteMany(
+            {
+              where: {
+                debtPaymentId: {
+                  in: debt.payments.map(
+                    (payment) =>
+                      payment.id,
+                  ),
+                },
+              },
+            },
+          );
+        }
+
+        // ------------------------------------------------
+        // DELETE TRANSACTIONS CONNECTED
+        // TO RECEIVED MONEY
+        // ------------------------------------------------
+
+        if (
+          debt.received.length >
+          0
+        ) {
+          await tx.transaction.deleteMany(
+            {
+              where: {
+                debtReceivedId: {
+                  in: debt.received.map(
+                    (received) =>
+                      received.id,
+                  ),
+                },
+              },
+            },
+          );
+        }
+
+        // ------------------------------------------------
+        // DELETE DEBT
+        //
+        // This also cascades to:
+        //
+        // DebtPayment
+        // DebtReceived
+        // ------------------------------------------------
+
+        await tx.debt.delete({
+          where: {
+            id: debt.id,
+          },
+        });
       },
-    });
+    );
 
     return NextResponse.json({
       success: true,
 
       message:
         "Debt deleted successfully.",
+
+      deleted: {
+        id: debt.id,
+
+        name: debt.name,
+
+        paymentCount:
+          debt.payments.length,
+
+        receivedCount:
+          debt.received.length,
+      },
     });
   } catch (error) {
     console.error(
       "Failed to delete debt:",
-      error
+      error,
     );
 
-    if (error?.message === "UNAUTHORIZED") {
+    if (
+      error?.message ===
+      "UNAUTHORIZED"
+    ) {
       return NextResponse.json(
         {
           error: "Unauthorized",
         },
         {
           status: 401,
-        }
+        },
       );
     }
 
@@ -503,11 +735,12 @@ export async function DELETE(
         error:
           "Failed to delete debt.",
         details:
-          error?.message || "Unknown error",
+          error?.message ||
+          "Unknown error",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }

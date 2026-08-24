@@ -286,7 +286,7 @@ export default function CategoriesPage() {
 
             <button
               type="submit"
-              className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+              className="rounded-md cursor-pointer bg-primary px-4 py-2 text-primary-foreground"
             >
               Add group
             </button>
@@ -326,7 +326,7 @@ export default function CategoriesPage() {
             <button
               type="submit"
               disabled={groups.length === 0}
-              className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+              className="rounded-md cursor-pointer bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
             >
               Add category
             </button>
@@ -367,7 +367,7 @@ export default function CategoriesPage() {
                             : `group-${group.id}`,
                         );
                       }}
-                      className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
+                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md hover:bg-muted"
                       aria-label="Group options"
                     >
                       ⋮
@@ -380,7 +380,7 @@ export default function CategoriesPage() {
                       >
                         <button
                           onClick={() => openEditGroup(group)}
-                          className="block w-full px-4 py-2 text-left text-sm hover:bg-muted"
+                          className="block cursor-pointer w-full px-4 py-2 text-left text-sm hover:bg-muted"
                         >
                           Edit
                         </button>
@@ -388,7 +388,7 @@ export default function CategoriesPage() {
                         <button
                           onClick={() => handleDeleteGroup(group)}
                           disabled={deletingId === `group-${group.id}` || loading}
-                          className="block w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                          className="block cursor-pointer w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {deletingId === `group-${group.id}`
                             ? "Deleting..."
@@ -426,7 +426,7 @@ export default function CategoriesPage() {
                                     : `category-${category.id}`,
                                 );
                               }}
-                              className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md hover:bg-muted"
                               aria-label="Category options"
                             >
                               ⋮
@@ -439,7 +439,7 @@ export default function CategoriesPage() {
                               >
                                 <button
                                   onClick={() => openEditCategory(category)}
-                                  className="block w-full px-4 py-2 text-left text-sm hover:bg-muted"
+                                  className="block cursor-pointer w-full px-4 py-2 text-left text-sm hover:bg-muted"
                                 >
                                   Edit
                                 </button>
@@ -447,7 +447,7 @@ export default function CategoriesPage() {
                                 <button
                                   onClick={() => handleDeleteCategory(category)}
                                   disabled={deletingId === `${category.id}`}
-                                  className="block w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="block cursor-pointer w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   {deletingId === `${category.id}`
                                     ? "Deleting..."
@@ -550,7 +550,7 @@ function EditCategoryModal({ category, groups, onClose, onSaved }) {
             </p>
           </div>
 
-          <button onClick={onClose} className="text-xl text-muted-foreground">
+          <button onClick={onClose} className="text-xl cursor-pointer text-muted-foreground">
             ×
           </button>
         </div>
@@ -598,7 +598,7 @@ function EditCategoryModal({ category, groups, onClose, onSaved }) {
           <button
             onClick={onClose}
             disabled={saving}
-            className="rounded-md border px-4 py-2 text-sm"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm"
           >
             Cancel
           </button>
@@ -606,7 +606,7 @@ function EditCategoryModal({ category, groups, onClose, onSaved }) {
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+            className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save changes"}
           </button>
@@ -667,7 +667,7 @@ function EditGroupModal({ group, onClose, onSaved }) {
             </p>
           </div>
 
-          <button onClick={onClose} className="text-xl text-muted-foreground">
+          <button onClick={onClose} className="text-xl cursor-pointer text-muted-foreground">
             ×
           </button>
         </div>
@@ -693,7 +693,7 @@ function EditGroupModal({ group, onClose, onSaved }) {
           <button
             onClick={onClose}
             disabled={saving}
-            className="rounded-md border px-4 py-2 text-sm"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm"
           >
             Cancel
           </button>
@@ -701,7 +701,7 @@ function EditGroupModal({ group, onClose, onSaved }) {
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+            className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save changes"}
           </button>

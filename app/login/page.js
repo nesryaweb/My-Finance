@@ -59,9 +59,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">
-              Email
-            </label>
+            <label className="mb-1 block text-sm font-medium">Email</label>
 
             <input
               type="email"
@@ -74,9 +72,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">
-              Password
-            </label>
+            <label className="mb-1 block text-sm font-medium">Password</label>
 
             <input
               type="password"
@@ -91,11 +87,21 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+            className="w-full cursor-pointer rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
+        <p className="mt-5 text-center text-sm text-muted-foreground">
+          Need an account?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/signup")}
+            className="font-medium cursor-pointer text-foreground underline"
+          >
+            Create an Account
+          </button>
+        </p>
       </div>
     </main>
   );

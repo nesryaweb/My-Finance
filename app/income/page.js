@@ -13,6 +13,7 @@ export default function IncomePage() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   const [saving, setSaving] = useState(false);
+  const [deletingIncomeId, setDeletingIncomeId] = useState(null);
 
   async function loadIncome() {
     try {
@@ -33,7 +34,38 @@ export default function IncomePage() {
       setLoading(false);
     }
   }
+  async function deleteIncome(incomeId) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this income? All allocations belonging to this income will also be deleted.",
+    );
 
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingIncomeId(incomeId);
+      setError("");
+
+      const response = await fetch(`/api/income/${incomeId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete income");
+      }
+
+      await loadIncome();
+    } catch (error) {
+      console.error(error);
+
+      setError(error.message || "Failed to delete income");
+    } finally {
+      setDeletingIncomeId(null);
+    }
+  }
   useEffect(() => {
     loadIncome();
   }, []);
@@ -144,7 +176,7 @@ export default function IncomePage() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50 md:col-span-2"
+            className="rounded-md cursor-pointer bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50 md:col-span-2"
           >
             {saving ? "Adding..." : "Add income"}
           </button>
@@ -168,6 +200,8 @@ export default function IncomePage() {
                 key={income.id}
                 income={income}
                 onAllocate={() => setAllocatingIncome(income)}
+                onDelete={() => deleteIncome(income.id)}
+                deleting={deletingIncomeId === income.id}
               />
             ))}
           </div>
@@ -187,7 +221,7 @@ export default function IncomePage() {
   );
 }
 
-function IncomeCard({ income, onAllocate }) {
+function IncomeCard({ income, onAllocate, onDelete, deleting }) {
   const amount = Number(income.amount);
   const allocated = Number(income.totalAllocated);
   const remaining = Number(income.remaining);
@@ -247,14 +281,25 @@ function IncomeCard({ income, onAllocate }) {
           </div>
         </div>
       )}
-      {remaining > 0 && (
+      <div className="mt-5 flex gap-2">
+        {remaining > 0 && (
+          <button
+            onClick={onAllocate}
+            disabled={deleting}
+            className="flex-1 cursor-pointer  rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Allocate income
+          </button>
+        )}
+
         <button
-          onClick={onAllocate}
-          className="mt-5 w-full rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          onClick={onDelete}
+          disabled={deleting}
+          className="rounded-md cursor-pointer border border-destructive/30 px-4 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Allocate income
+          {deleting ? "Deleting..." : "Delete"}
         </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -411,7 +456,7 @@ function AllocateIncomeModal({ income, onClose, onAllocated }) {
           <button
             onClick={onClose}
             disabled={saving}
-            className="rounded-md border px-4 py-2 text-sm"
+            className="rounded-md  cursor-pointer border px-4 py-2 text-sm"
           >
             Cancel
           </button>

@@ -216,7 +216,7 @@ export default function DashboardPage() {
                     onClick={() =>
                       setShowAllBudgetCategories((previous) => !previous)
                     }
-                    className="mt-5 w-full rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    className="mt-5 w-full cursor-pointer rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
                   >
                     {showAllBudgetCategories
                       ? "Show less"

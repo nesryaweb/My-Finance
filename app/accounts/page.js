@@ -263,7 +263,7 @@ export default function AccountsPage() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+                className="rounded-md cursor-pointer bg-primary px-4 py-2 text-primary-foreground"
               >
                 {editingId ? "Save changes" : "Add account"}
               </button>
@@ -272,7 +272,7 @@ export default function AccountsPage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-md border px-4 py-2"
+                  className="rounded-md cursor-pointer border px-4 py-2"
                 >
                   Cancel
                 </button>
@@ -330,7 +330,7 @@ export default function AccountsPage() {
                           openMenuId === account.id ? null : account.id,
                         );
                       }}
-                      className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
+                      className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md hover:bg-muted"
                       aria-label="Account options"
                     >
                       ⋮
@@ -347,7 +347,7 @@ export default function AccountsPage() {
                             setOpenMenuId(null);
                             startEditing(account);
                           }}
-                          className="block w-full px-4 py-2 text-left text-sm hover:bg-muted"
+                          className="block cursor-pointer w-full px-4 py-2 text-left text-sm hover:bg-muted"
                         >
                           Edit
                         </button>
@@ -359,7 +359,7 @@ export default function AccountsPage() {
                             handleDelete(account);
                           }}
                           disabled={deletingId === account.id}
-                          className="block w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                          className="block cursor-pointer w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {deletingId === account.id ? "Deleting..." : "Delete"}
                         </button>

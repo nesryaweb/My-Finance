@@ -10,7 +10,7 @@ export async function DELETE(request, { params }) {
   try {
     const user = await requireUser();
 
-    const { id: incomeId } = await params;
+    const { id } = await params;
 
     // ==================================================
     // FIND INCOME
@@ -22,7 +22,7 @@ export async function DELETE(request, { params }) {
 
     const income = await prisma.income.findFirst({
       where: {
-        id: incomeId,
+        id,
         userId: user.id,
       },
 
@@ -52,13 +52,12 @@ export async function DELETE(request, { params }) {
     //   onDelete: Cascade
     // )
     //
-    // Therefore all allocations belonging to this
-    // income will also be deleted.
+    // Therefore its allocations will also be deleted.
     // ==================================================
 
     await prisma.income.delete({
       where: {
-        id: incomeId,
+        id: income.id,
       },
     });
 

@@ -214,7 +214,7 @@ export default function BudgetPage() {
 
           <button
             onClick={createBudget}
-            className="mt-5 rounded-md bg-primary px-5 py-2 text-primary-foreground"
+            className="mt-5 rounded-md cursor-pointer bg-primary px-5 py-2 text-primary-foreground"
           >
             Create Budget
           </button>
@@ -521,7 +521,7 @@ export default function BudgetPage() {
 
                             <button
                               onClick={() => openBudgetModal(category)}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xl hover:bg-muted"
+                              className="flex h-9 w-9 cursor-pointer shrink-0 items-center justify-center rounded-full border text-xl hover:bg-muted"
                               title={
                                 allocation
                                   ? `Edit budget for ${category.name}`
@@ -741,7 +741,7 @@ function BudgetCategoryRow({
           <button
             onClick={saveAllocation}
             disabled={saving}
-            className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50"
+            className="rounded-md cursor-pointer bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}
           </button>
@@ -750,7 +750,7 @@ function BudgetCategoryRow({
             <button
               onClick={deleteAllocation}
               disabled={saving}
-              className="rounded-md border px-3 py-2 text-sm text-destructive disabled:opacity-50"
+              className="rounded-md cursor-pointer border px-3 py-2 text-sm text-destructive disabled:opacity-50"
             >
               Delete
             </button>
@@ -861,7 +861,7 @@ function BudgetModal({
             </p>
           </div>
 
-          <button onClick={onClose} className="text-xl text-muted-foreground">
+          <button onClick={onClose} className="text-xl cursor-pointer text-muted-foreground">
             ×
           </button>
         </div>
@@ -913,7 +913,7 @@ function BudgetModal({
               <button
                 onClick={deleteBudget}
                 disabled={saving}
-                className="rounded-md px-4 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                className="rounded-md cursor-pointer px-4 py-2 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50"
               >
                 Delete
               </button>
@@ -924,7 +924,7 @@ function BudgetModal({
             <button
               onClick={onClose}
               disabled={saving}
-              className="rounded-md border px-4 py-2 text-sm"
+              className="rounded-md cursor-pointer border px-4 py-2 text-sm"
             >
               Cancel
             </button>
@@ -932,7 +932,7 @@ function BudgetModal({
             <button
               onClick={saveBudget}
               disabled={saving}
-              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+              className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
             >
               {saving ? "Saving..." : allocation ? "Update" : "Save"}
             </button>

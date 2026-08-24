@@ -300,7 +300,7 @@ export default function TransactionsPage() {
           <button
             type="submit"
             disabled={savingTransaction}
-            className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50 md:col-span-2"
+            className="rounded-md cursor-pointer bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50 md:col-span-2"
           >
             {savingTransaction ? "Saving transaction..." : "Add expense"}
           </button>
@@ -328,7 +328,7 @@ export default function TransactionsPage() {
               event.stopPropagation();
               setShowFilters((previous) => !previous);
             }}
-            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             Filter
           </button>
@@ -351,7 +351,7 @@ export default function TransactionsPage() {
                 <button
                   type="button"
                   onClick={() => setShowFilters(false)}
-                  className="text-xl text-muted-foreground hover:text-foreground"
+                  className="text-xl cursor-pointer text-muted-foreground hover:text-foreground"
                 >
                   ×
                 </button>
@@ -459,7 +459,7 @@ export default function TransactionsPage() {
                         endDate: "",
                       })
                     }
-                    className="rounded-md border px-4 py-2 text-sm"
+                    className="rounded-md cursor-pointer border px-4 py-2 text-sm"
                   >
                     Clear
                   </button>
@@ -522,7 +522,7 @@ export default function TransactionsPage() {
                           openMenuId === transaction.id ? null : transaction.id,
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
+                      className="flex h-9 w-9 items-center justify-center rounded-md cursor-pointer hover:bg-muted"
                       aria-label="Transaction options"
                     >
                       ⋮
@@ -533,7 +533,7 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => openEdit(transaction)}
-                          className="block w-full px-4 py-2 text-left text-sm hover:bg-muted"
+                          className="block cursor-pointer w-full px-4 py-2 text-left text-sm hover:bg-muted"
                         >
                           Edit
                         </button>
@@ -541,7 +541,7 @@ export default function TransactionsPage() {
                         <button
                           type="button"
                           onClick={() => openDelete(transaction)}
-                          className="block w-full px-4 py-2 text-left text-sm text-destructive hover:bg-muted"
+                          className="block w-full px-4 py-2 text-left text-sm cursor-pointer text-destructive hover:bg-muted"
                         >
                           Delete
                         </button>
@@ -560,7 +560,7 @@ export default function TransactionsPage() {
             type="button"
             onClick={() => goToPage(pagination.page - 1)}
             disabled={!pagination.hasPreviousPage}
-            className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border cursor-pointer px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
@@ -580,7 +580,7 @@ export default function TransactionsPage() {
             type="button"
             onClick={() => goToPage(pagination.page + 1)}
             disabled={!pagination.hasNextPage}
-            className="rounded-md border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border cursor-pointer px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>
@@ -720,7 +720,7 @@ function EditTransactionModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-xl text-muted-foreground"
+            className="text-xl cursor-pointer text-muted-foreground"
           >
             ×
           </button>
@@ -790,7 +790,7 @@ function EditTransactionModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-md border px-4 py-2 text-sm"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm"
           >
             Cancel
           </button>
@@ -799,7 +799,7 @@ function EditTransactionModal({
             type="button"
             onClick={save}
             disabled={saving}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+            className="rounded-md bg-primary cursor-pointer px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save changes"}
           </button>
@@ -875,7 +875,7 @@ function DeleteTransactionModal({ transaction, onClose, onDeleted }) {
             type="button"
             onClick={onClose}
             disabled={deleting}
-            className="rounded-md border px-4 py-2 text-sm"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm"
           >
             Cancel
           </button>
@@ -884,7 +884,7 @@ function DeleteTransactionModal({ transaction, onClose, onDeleted }) {
             type="button"
             onClick={deleteTransaction}
             disabled={deleting}
-            className="rounded-md bg-destructive px-4 py-2 text-sm text-destructive-foreground disabled:opacity-50"
+            className="rounded-md bg-destructive cursor-pointer px-4 py-2 text-sm text-destructive-foreground disabled:opacity-50"
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
@@ -910,7 +910,7 @@ function CategorySelect({ value, onChange, categories }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-left"
+        className="flex w-full items-center justify-between rounded-md border cursor-pointer bg-background px-3 py-2 text-left"
       >
         <div className="flex min-w-0 items-center justify-between gap-4">
           {selectedCategory ? (
@@ -962,7 +962,7 @@ function CategorySelect({ value, onChange, categories }) {
                     onChange(category.id);
                     setOpen(false);
                   }}
-                  className="flex w-full items-center justify-between gap-4 px-3 py-2 text-left hover:bg-muted"
+                  className="flex w-full items-center  cursor-pointer justify-between gap-4 px-3 py-2 text-left hover:bg-muted"
                 >
                   {/* Category */}
                   <span className="min-w-0 truncate">{category.name}</span>
@@ -998,7 +998,7 @@ function AccountSelect({ value, onChange, accounts }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-left"
+        className="flex w-full items-center cursor-pointer justify-between rounded-md border bg-background px-3 py-2 text-left"
       >
         <div className="flex min-w-0 items-center justify-between gap-4">
           {selectedAccount ? (
@@ -1049,7 +1049,7 @@ function AccountSelect({ value, onChange, accounts }) {
                   onChange(account.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-center justify-between gap-4 px-3 py-2 text-left hover:bg-muted"
+                className="flex w-full items-center cursor-pointer justify-between gap-4 px-3 py-2 text-left hover:bg-muted"
               >
                 {/* Account name */}
                 <span className="min-w-0 truncate">{account.name}</span>

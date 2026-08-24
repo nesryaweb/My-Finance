@@ -173,7 +173,7 @@ export default function GoalsPage() {
         <button
           type="button"
           onClick={() => setShowAddGoal(true)}
-          className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+          className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground"
         >
           Add goal
         </button>
@@ -406,7 +406,7 @@ function GoalCard({
           <button
             type="button"
             onClick={() => setShowHistory((current) => !current)}
-            className="flex w-full items-center justify-between text-sm font-medium"
+            className="flex w-full cursor-pointer items-center justify-between text-sm font-medium"
           >
             <span>
               Contribution history
@@ -459,7 +459,7 @@ function GoalCard({
                           goalId: goal.id,
                         })
                       }
-                      className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+                      className="rounded-md cursor-pointer border px-3 py-1.5 text-xs font-medium hover:bg-muted"
                     >
                       Edit
                     </button>
@@ -472,7 +472,7 @@ function GoalCard({
                           goalId: goal.id,
                         })
                       }
-                      className="rounded-md border px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+                      className="rounded-md cursor-pointer border px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
                     >
                       Delete
                     </button>
@@ -492,7 +492,7 @@ function GoalCard({
         <button
           type="button"
           onClick={onEdit}
-          className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+          className="rounded-md cursor-pointer border px-4 py-2 text-sm hover:bg-muted"
         >
           Edit
         </button>
@@ -501,7 +501,7 @@ function GoalCard({
           <button
             type="button"
             onClick={onContribute}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground"
+            className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground"
           >
             Add money
           </button>
@@ -511,7 +511,7 @@ function GoalCard({
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-md border px-4 py-2 text-sm text-destructive"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm text-destructive"
           >
             Delete
           </button>
@@ -896,7 +896,7 @@ function DeleteContributionModal({ contribution, onClose, onDelete }) {
             type="button"
             onClick={onClose}
             disabled={deleting}
-            className="rounded-md border px-4 py-2 text-sm"
+            className="rounded-md cursor-pointer border px-4 py-2 text-sm"
           >
             Cancel
           </button>
@@ -905,7 +905,7 @@ function DeleteContributionModal({ contribution, onClose, onDelete }) {
             type="button"
             onClick={handleDelete}
             disabled={deleting}
-            className="rounded-md bg-destructive px-4 py-2 text-sm text-destructive-foreground disabled:opacity-50"
+            className="rounded-md cursor-pointer bg-destructive px-4 py-2 text-sm text-destructive-foreground disabled:opacity-50"
           >
             {deleting ? "Deleting..." : "Delete contribution"}
           </button>
@@ -926,7 +926,7 @@ function ModalHeader({ title, description, onClose }) {
       <button
         type="button"
         onClick={onClose}
-        className="text-xl text-muted-foreground hover:text-foreground"
+        className="text-xl cursor-pointer text-muted-foreground hover:text-foreground"
       >
         ×
       </button>
@@ -949,7 +949,7 @@ function ModalActions({ onClose, onSave, saving = false, saveText = "Save" }) {
         type="button"
         onClick={onClose}
         disabled={saving}
-        className="rounded-md border px-4 py-2 text-sm"
+        className="rounded-md cursor-pointer border px-4 py-2 text-sm"
       >
         Cancel
       </button>
@@ -958,7 +958,7 @@ function ModalActions({ onClose, onSave, saving = false, saveText = "Save" }) {
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+        className="rounded-md cursor-pointer bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
       >
         {saving ? "Saving..." : saveText}
       </button>

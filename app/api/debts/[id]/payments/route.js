@@ -29,7 +29,7 @@ export async function POST(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -48,7 +48,7 @@ export async function POST(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -63,15 +63,14 @@ export async function POST(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
     // ==================================================
     // FIND DEBT
     //
-    // IMPORTANT:
-    // Debt must belong to current user.
+    // The debt must belong to the current user.
     // ==================================================
 
     const debt = await prisma.debt.findFirst({
@@ -92,12 +91,12 @@ export async function POST(request, { params }) {
         },
         {
           status: 404,
-        }
+        },
       );
     }
 
     // ==================================================
-    // CALCULATE REMAINING DEBT
+    // CALCULATE CURRENT DEBT BALANCE
     // ==================================================
 
     const originalAmount =
@@ -105,15 +104,18 @@ export async function POST(request, { params }) {
 
     const totalPaid =
       debt.payments.reduce(
-        (total, payment) =>
-          total +
-          Number(payment.amount || 0),
-        0
+        (total, payment) => {
+          return (
+            total +
+            Number(payment.amount || 0)
+          );
+        },
+        0,
       );
 
     const remainingDebt = Math.max(
       originalAmount - totalPaid,
-      0
+      0,
     );
 
     // ==================================================
@@ -128,7 +130,7 @@ export async function POST(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
@@ -143,29 +145,40 @@ export async function POST(request, { params }) {
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
     // ==================================================
     // FIND ACCOUNT
     //
-    // IMPORTANT:
-    // Account must belong to current user.
+    // The account must belong to the current user.
+    //
+    // We load:
+    //
+    // 1. Income allocations
+    // 2. Account transactions
+    //
+    // Transactions include:
+    //
+    // - DEBT_RECEIVED
+    // - EXPENSE
+    // - GOAL_CONTRIBUTION
     // ==================================================
 
-    const account = await prisma.account.findFirst({
-      where: {
-        id: accountId,
-        userId: user.id,
-      },
+    const account =
+      await prisma.account.findFirst({
+        where: {
+          id: accountId,
+          userId: user.id,
+        },
 
-      include: {
-        incomeAllocations: true,
+        include: {
+          incomeAllocations: true,
 
-        transactions: true,
-      },
-    });
+          transactions: true,
+        },
+      });
 
     if (!account) {
       return NextResponse.json(
@@ -174,43 +187,105 @@ export async function POST(request, { params }) {
         },
         {
           status: 404,
-        }
+        },
       );
     }
 
     // ==================================================
-    // CALCULATE ACCOUNT BALANCE
+    // CALCULATE MONEY ALLOCATED FROM INCOME
     // ==================================================
 
     const allocated =
       account.incomeAllocations.reduce(
-        (total, allocation) =>
-          total +
-          Number(allocation.amount || 0),
-        0
+        (total, allocation) => {
+          return (
+            total +
+            Number(
+              allocation.amount || 0,
+            )
+          );
+        },
+        0,
       );
 
-    const outgoingTransactions =
+    // ==================================================
+    // CALCULATE MONEY RECEIVED FROM DEBT
+    //
+    // Borrowed money is NOT income.
+    //
+    // However, it DOES increase the account balance.
+    //
+    // Example:
+    //
+    // Income allocated:   5,000
+    // Debt received:      3,000
+    //
+    // Available before expenses:
+    //                     8,000
+    // ==================================================
+
+    const debtReceived =
       account.transactions.reduce(
         (total, transaction) => {
           if (
-            transaction.type === "EXPENSE" ||
             transaction.type ===
-              "GOAL_CONTRIBUTION"
+            "DEBT_RECEIVED"
           ) {
             return (
               total +
-              Number(transaction.amount || 0)
+              Number(
+                transaction.amount || 0,
+              )
             );
           }
 
           return total;
         },
-        0
+        0,
       );
 
+    // ==================================================
+    // CALCULATE MONEY SPENT
+    //
+    // These transaction types decrease the account
+    // balance.
+    //
+    // EXPENSE:
+    // Normal spending and debt payments.
+    //
+    // GOAL_CONTRIBUTION:
+    // Money moved from the account into a financial goal.
+    // ==================================================
+
+    const outgoingTransactions =
+      account.transactions.reduce(
+        (total, transaction) => {
+          if (
+            transaction.type ===
+              "EXPENSE" ||
+            transaction.type ===
+              "GOAL_CONTRIBUTION"
+          ) {
+            return (
+              total +
+              Number(
+                transaction.amount || 0,
+              )
+            );
+          }
+
+          return total;
+        },
+        0,
+      );
+
+    // ==================================================
+    // CALCULATE AVAILABLE ACCOUNT BALANCE
+    // ==================================================
+
     const availableBalance =
-      allocated -
+      allocated +
+      debtReceived -
       outgoingTransactions;
 
     // ==================================================
@@ -220,16 +295,19 @@ export async function POST(request, { params }) {
     if (amount > availableBalance) {
       return NextResponse.json(
         {
-          error: `Not enough money in this account. Available balance: ${availableBalance.toLocaleString()} birr.`,
+          error: `Not enough money in this account. Available balance: ${Math.max(
+            availableBalance,
+            0,
+          ).toLocaleString()} birr.`,
         },
         {
           status: 400,
-        }
+        },
       );
     }
 
     // ==================================================
-    // CALCULATE NEW DEBT STATUS
+    // CALCULATE NEW DEBT TOTALS
     // ==================================================
 
     const newTotalPaid =
@@ -239,7 +317,7 @@ export async function POST(request, { params }) {
       Math.max(
         originalAmount -
           newTotalPaid,
-        0
+        0,
       );
 
     const newStatus =
@@ -248,10 +326,17 @@ export async function POST(request, { params }) {
         : "ACTIVE";
 
     // ==================================================
-    // CREATE DEBT PAYMENT
-    // + EXPENSE TRANSACTION
+    // CREATE PAYMENT + TRANSACTION
     //
-    // BOTH ARE CREATED TOGETHER.
+    // Both are created inside ONE transaction.
+    //
+    // If either operation fails:
+    //
+    // - DebtPayment is not saved
+    // - Transaction is not saved
+    // - Debt status is not changed
+    //
+    // This keeps the financial records synchronized.
     // ==================================================
 
     const result =
@@ -259,12 +344,18 @@ export async function POST(request, { params }) {
         async (tx) => {
           // --------------------------------------------
           // CREATE EXPENSE TRANSACTION
+          //
+          // Debt repayment is an expense from the
+          // account's point of view.
+          //
+          // It is NOT income.
           // --------------------------------------------
 
           const transaction =
             await tx.transaction.create({
               data: {
-                amount: String(amount),
+                amount:
+                  String(amount),
 
                 type: "EXPENSE",
 
@@ -274,7 +365,8 @@ export async function POST(request, { params }) {
 
                 date,
 
-                userId: user.id,
+                userId:
+                  user.id,
 
                 accountId,
               },
@@ -287,7 +379,8 @@ export async function POST(request, { params }) {
           const payment =
             await tx.debtPayment.create({
               data: {
-                amount: String(amount),
+                amount:
+                  String(amount),
 
                 date,
 
@@ -334,9 +427,14 @@ export async function POST(request, { params }) {
               },
 
               data: {
-                status: newStatus,
+                status:
+                  newStatus,
               },
             });
+
+          // --------------------------------------------
+          // RETURN CREATED RECORDS
+          // --------------------------------------------
 
           return {
             payment: {
@@ -346,9 +444,10 @@ export async function POST(request, { params }) {
                 updatedTransaction,
             },
 
-            debt: updatedDebt,
+            debt:
+              updatedDebt,
           };
-        }
+        },
       );
 
     // ==================================================
@@ -361,7 +460,7 @@ export async function POST(request, { params }) {
           ...result.payment,
 
           amount: Number(
-            result.payment.amount
+            result.payment.amount,
           ),
         },
 
@@ -371,14 +470,16 @@ export async function POST(request, { params }) {
           originalAmount:
             Number(
               result.debt
-                .originalAmount
+                .originalAmount,
             ),
 
           minimumPayment:
-            result.debt.minimumPayment
+            result.debt
+              .minimumPayment !==
+              null
               ? Number(
                   result.debt
-                    .minimumPayment
+                    .minimumPayment,
                 )
               : null,
 
@@ -391,16 +492,35 @@ export async function POST(request, { params }) {
           status:
             newStatus,
         },
+
+        account: {
+          id:
+            account.id,
+
+          name:
+            account.name,
+
+          previousBalance:
+            availableBalance,
+
+          newBalance:
+            availableBalance -
+            amount,
+        },
       },
       {
         status: 201,
-      }
+      },
     );
   } catch (error) {
     console.error(
       "Failed to create debt payment:",
-      error
+      error,
     );
+
+    // ==================================================
+    // AUTHORIZATION ERROR
+    // ==================================================
 
     if (
       error?.message ===
@@ -408,13 +528,18 @@ export async function POST(request, { params }) {
     ) {
       return NextResponse.json(
         {
-          error: "Unauthorized",
+          error:
+            "Unauthorized",
         },
         {
           status: 401,
-        }
+        },
       );
     }
+
+    // ==================================================
+    // GENERAL ERROR
+    // ==================================================
 
     return NextResponse.json(
       {
@@ -427,7 +552,7 @@ export async function POST(request, { params }) {
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }

@@ -156,7 +156,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+            className="w-full cursor-pointer rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
           >
             {loading ? "Creating account..." : "Create account"}
           </button>
@@ -167,7 +167,7 @@ export default function SignupPage() {
           <button
             type="button"
             onClick={() => router.push("/login")}
-            className="font-medium text-foreground underline"
+            className="font-medium cursor-pointer text-foreground underline"
           >
             Sign in
           </button>
