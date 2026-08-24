@@ -152,7 +152,10 @@ export default function AccountsPage() {
     0,
   );
   const totalAllocated = accounts.reduce(
-    (total, account) => total + Number(account.allocated || 0),
+    (total, account) =>
+      total +
+      Number(account.allocated || 0) +
+      Number(account.debtReceived || 0),
     0,
   );
 
@@ -189,7 +192,7 @@ export default function AccountsPage() {
 
           <div className="grid grid-cols-2 gap-5 sm:flex sm:flex-col">
             <div>
-              <p className="text-sm text-muted-foreground">Total Allocated</p>
+              <p className="text-sm text-muted-foreground">Total Received</p>
 
               <p className="mt-1 text-xl font-bold">
                 {totalAllocated.toLocaleString()}{" "}
@@ -375,7 +378,10 @@ export default function AccountsPage() {
                     <p className="text-xs text-muted-foreground">Had</p>
 
                     <p className="mt-1 font-medium">
-                      {Number(account.allocated || 0).toLocaleString()}{" "}
+                      {(
+                        Number(account.allocated || 0) +
+                        Number(account.debtReceived || 0)
+                      ).toLocaleString()}{" "}
                       <span className="text-xs text-gray-500">birr</span>
                     </p>
                   </div>
